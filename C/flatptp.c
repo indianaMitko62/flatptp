@@ -11,10 +11,7 @@
 
 size_t hdlc_encode_info_frame(int8_t **frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *data, size_t data_size)
 {
-    // static uint8_t receive_sequence_number = 0;
-    // static uint8_t send_sequence_number = 0;
-
-    size_t frame_size = 4; // for first flag, last flag, address field and control field
+    size_t frame_size = 6; // 1 byte for first flag, last flag, address field, control field; 2 bytes for FCS
     uint32_t frame_index = 0;
 
     for (int i = 0; i < data_size; i++)
@@ -88,4 +85,25 @@ void print_frame(int8_t *frame, size_t buf_size)
     }
     printf("\nEnd of Data\n");
     printf("Flag:\t0x%x\n", frame[buf_size - 1]);
+}
+
+uint16_t crc16_ccitt(int8_t *data, size_t length)
+{
+    uint16_t crc = 0xFFFF;
+    for (size_t i = 0; i < length; i++)
+    {
+        crc ^= (uint16_t)data[i] << 8;
+        for (int j = 0; j < 8; j++)
+        {
+            if (crc & 0x8000)
+            {
+                crc = (crc << 1) ^ 0x1021;
+            }
+            else
+            {
+                crc <<= 1;
+            }
+        }
+    }
+    return crc;
 }
