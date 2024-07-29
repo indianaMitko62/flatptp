@@ -12,6 +12,27 @@
 #define CRC_START_VAL 0xFFFF
 #define CRC_POLY 0x1021
 
+uint16_t crc16_ccitt(int8_t *data, size_t length)
+{
+    uint16_t crc = CRC_START_VAL;
+    for (size_t i = 0; i < length; i++)
+    {
+        crc ^= (uint16_t)data[i] << 8;
+        for (int j = 0; j < 8; j++)
+        {
+            if (crc & 0x8000)
+            {
+                crc = (crc << 1) ^ CRC_POLY;
+            }
+            else
+            {
+                crc <<= 1;
+            }
+        }
+    }
+    return crc;
+}
+
 size_t hdlc_encode_info_frame(int8_t **frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *data, size_t data_size)
 {
     size_t frame_size = 6; // 1 byte for first flag, last flag, address field, control field; 2 bytes for FCS
@@ -48,7 +69,9 @@ size_t hdlc_encode_info_frame(int8_t **frame, uint8_t address, hdlc_encode_ctl_t
         (*frame)[frame_index++] = data[i];
     }
 
-    (*frame)[frame_index++] = crc16_ccitt(data + 1, frame_size - 4); // FIXME
+    uint16_t crc = crc16_ccitt(*frame + 1, frame_size - 4); // FIXME
+    (*frame)[frame_index++] = crc >> 8;
+    (*frame)[frame_index++] = crc & 0x00FF;
     (*frame)[frame_index++] = FLAG;
 
     return frame_size;
@@ -90,28 +113,6 @@ void print_frame(int8_t *frame, size_t buf_size)
         printf("0x%x, ", frame[i]);
     }
     printf("\nEnd of Data\n");
-    uint16_t crc = frame[i + 1] << frame[i + 2];
-    printf("\tFCS:\t%d\n", crc);
-    printf("Flag:\t0x%x\n", frame[buf_size - 1]);
-}
-
-uint16_t crc16_ccitt(int8_t *data, size_t length)
-{
-    uint16_t crc = CRC_START_VAL;
-    for (size_t i = 0; i < length; i++)
-    {
-        crc ^= (uint16_t)data[i] << 8;
-        for (int j = 0; j < 8; j++)
-        {
-            if (crc & 0x8000)
-            {
-                crc = (crc << 1) ^ CRC_POLY;
-            }
-            else
-            {
-                crc <<= 1;
-            }
-        }
-    }
-    return crc;
+    printf("FCS:\t0x%X%X\n", (uint8_t)frame[i], (uint8_t)frame[i + 1]);
+    printf("Flag:\t0x%X\n", frame[buf_size - 1]);
 }
