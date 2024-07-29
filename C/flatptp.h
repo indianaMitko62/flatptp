@@ -3,7 +3,6 @@
 // *********************
 // HDLC encoding
 // *********************
-
 typedef struct
 {
     uint8_t receive_sequence_number;
@@ -13,7 +12,6 @@ typedef struct
 
 // hdlc_encode_data encodes the data stored in data as a HDLC frame and sends the frame using the user provided send_bytes function
 size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t *frame_buf);
-void print_frame(int8_t *frame, size_t buf_size);
 
 // *********************
 // HDLC decoding
@@ -33,3 +31,8 @@ void hdlc_decode_eat(hdlc_decode_ctx_t *ctx, char c);
 // contain the decoded frame content)
 uint16_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx);
 uint16_t hdlc_decode_has_error(hdlc_decode_ctx_t *ctx);
+
+// *********************
+// HDLC help
+// *********************
+void print_frame(int8_t *frame, size_t buf_size);

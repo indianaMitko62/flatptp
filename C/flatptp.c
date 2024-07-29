@@ -44,7 +44,7 @@ size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t 
 
     for (int i = 0; i < data_size; i++)
     {
-        if (data[i] == FLAG || data[i] == ESCAPE)
+        if (FLAG == data[i] || ESCAPE == data[i])
         {
             frame[frame_index++] = ESCAPE;
             frame[frame_index++] = data[i] ^ XOR_VALUE;
@@ -53,7 +53,7 @@ size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t 
         frame[frame_index++] = data[i];
     }
 
-    uint16_t crc = crc16_ccitt(frame + 1, frame_index - 1); // FIXME
+    uint16_t crc = crc16_ccitt(frame + 1, frame_index - 1); //+/-1 is to avoid adding the entry flag to FCS calculation
     frame[frame_index++] = crc >> 8;
     frame[frame_index++] = crc & 0x00FF;
     frame[frame_index++] = FLAG;
@@ -65,7 +65,7 @@ size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t 
 {
     static hdlc_encode_ctl_t ctl = {0, 0, 1};
     size_t frame_size = hdlc_encode_info_frame(frame_buf, address, &ctl, data, data_size);
-    if (frame_size == 0)
+    if (0 == frame_size)
     {
         printf("error encoding frame");
         return 1;
