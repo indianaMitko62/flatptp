@@ -9,6 +9,9 @@
 #define ESCAPE 0x7D
 #define XOR_VALUE 0x20
 
+#define CRC_START_VAL 0xFFFF
+#define CRC_POLY 0x1021
+
 size_t hdlc_encode_info_frame(int8_t **frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *data, size_t data_size)
 {
     size_t frame_size = 6; // 1 byte for first flag, last flag, address field, control field; 2 bytes for FCS
@@ -45,6 +48,7 @@ size_t hdlc_encode_info_frame(int8_t **frame, uint8_t address, hdlc_encode_ctl_t
         (*frame)[frame_index++] = data[i];
     }
 
+    (*frame)[frame_index++] = crc16_ccitt(data + 1, frame_size - 4); // FIXME
     (*frame)[frame_index++] = FLAG;
 
     return frame_size;
@@ -67,10 +71,12 @@ size_t hdlc_send_data(uint8_t address, int8_t *data, size_t data_size, size_t (*
         return 1;
     }
     free(frame);
+    return frame_size;
 }
 
 void print_frame(int8_t *frame, size_t buf_size)
 {
+    int i;
     printf("Flag:\t0x%x\n", frame[0]);
     printf("Addr:\t0x%x\n", frame[1]);
     printf("Ctrl:\t0x%x\n", frame[2]);
@@ -79,17 +85,19 @@ void print_frame(int8_t *frame, size_t buf_size)
     printf("\tSenN:\t%d\n", (frame[2] >> 1) & 0x07);
     printf("\tType:\t%d\n", frame[2] & 0x01);
     printf("Data:\n");
-    for (int i = 3; i < buf_size - 1; i++)
+    for (i = 3; i < buf_size - 3; i++)
     {
         printf("0x%x, ", frame[i]);
     }
     printf("\nEnd of Data\n");
+    uint16_t crc = frame[i + 1] << frame[i + 2];
+    printf("\tFCS:\t%d\n", crc);
     printf("Flag:\t0x%x\n", frame[buf_size - 1]);
 }
 
 uint16_t crc16_ccitt(int8_t *data, size_t length)
 {
-    uint16_t crc = 0xFFFF;
+    uint16_t crc = CRC_START_VAL;
     for (size_t i = 0; i < length; i++)
     {
         crc ^= (uint16_t)data[i] << 8;
@@ -97,7 +105,7 @@ uint16_t crc16_ccitt(int8_t *data, size_t length)
         {
             if (crc & 0x8000)
             {
-                crc = (crc << 1) ^ 0x1021;
+                crc = (crc << 1) ^ CRC_POLY;
             }
             else
             {
