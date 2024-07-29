@@ -11,8 +11,8 @@ typedef struct
     uint8_t poll_flag_bit;
 } hdlc_encode_ctl_t;
 
-// hdlc_send_data encodes the data stored in data as a HDLC frame and sends the frame using the user provided send_bytes function
-size_t hdlc_send_data(uint8_t address, int8_t *data, size_t data_size, size_t (*send_bytes)(int8_t *buf, size_t buf_size));
+// hdlc_encode_data encodes the data stored in data as a HDLC frame and sends the frame using the user provided send_bytes function
+size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t *frame_buf);
 void print_frame(int8_t *frame, size_t buf_size);
 
 // *********************

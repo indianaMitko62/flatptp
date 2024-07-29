@@ -33,76 +33,52 @@ uint16_t crc16_ccitt(int8_t *data, size_t length)
     return crc;
 }
 
-size_t hdlc_encode_info_frame(int8_t **frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *data, size_t data_size)
+size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *data, size_t data_size)
 {
-    size_t frame_size = 6; // 1 byte for first flag, last flag, address field, control field; 2 bytes for FCS
     uint32_t frame_index = 0;
 
-    for (int i = 0; i < data_size; i++)
-    {
-        if (data[i] == FLAG || data[i] == ESCAPE)
-            frame_size++;
-        frame_size++;
-    }
-
-    // uint8_t frame_arr[frame_size];
-    *frame = malloc(frame_size);
-    if (*frame == NULL)
-    {
-        printf("unsuccessful malloc");
-        return 0;
-    }
-
-    (*frame)[frame_index++] = FLAG;
-    (*frame)[frame_index++] = address;
-    (*frame)[frame_index++] = (ctl->receive_sequence_number << 5) | (ctl->poll_flag_bit << 4) | (ctl->send_sequence_number << 1);
+    frame[frame_index++] = FLAG;
+    frame[frame_index++] = address;
+    frame[frame_index++] = (ctl->receive_sequence_number << 5) | (ctl->poll_flag_bit << 4) | (ctl->send_sequence_number << 1);
     ctl->send_sequence_number = (ctl->send_sequence_number + 1) % 8;
 
     for (int i = 0; i < data_size; i++)
     {
         if (data[i] == FLAG || data[i] == ESCAPE)
         {
-            (*frame)[frame_index++] = ESCAPE;
-            (*frame)[frame_index++] = data[i] ^ XOR_VALUE;
+            frame[frame_index++] = ESCAPE;
+            frame[frame_index++] = data[i] ^ XOR_VALUE;
             continue;
         }
-        (*frame)[frame_index++] = data[i];
+        frame[frame_index++] = data[i];
     }
 
-    uint16_t crc = crc16_ccitt(*frame + 1, frame_size - 4); // FIXME
-    (*frame)[frame_index++] = crc >> 8;
-    (*frame)[frame_index++] = crc & 0x00FF;
-    (*frame)[frame_index++] = FLAG;
+    uint16_t crc = crc16_ccitt(frame + 1, frame_index - 1); // FIXME
+    frame[frame_index++] = crc >> 8;
+    frame[frame_index++] = crc & 0x00FF;
+    frame[frame_index++] = FLAG;
 
-    return frame_size;
+    return frame_index;
 }
 
-size_t hdlc_send_data(uint8_t address, int8_t *data, size_t data_size, size_t (*send_bytes)(int8_t *buf, size_t buf_size))
+size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t *frame_buf)
 {
-    static hdlc_encode_ctl_t ctl = {5, 6, 1};
-    int8_t *frame;
-    size_t frame_size = hdlc_encode_info_frame(&frame, address, &ctl, data, data_size);
+    static hdlc_encode_ctl_t ctl = {0, 0, 1};
+    size_t frame_size = hdlc_encode_info_frame(frame_buf, address, &ctl, data, data_size);
     if (frame_size == 0)
     {
         printf("error encoding frame");
         return 1;
     }
-    size_t sent_size = send_bytes(frame, frame_size);
-    if (sent_size < frame_size)
-    {
-        printf("could not send whole frame");
-        return 1;
-    }
-    free(frame);
     return frame_size;
 }
 
 void print_frame(int8_t *frame, size_t buf_size)
 {
     int i;
-    printf("Flag:\t0x%x\n", frame[0]);
-    printf("Addr:\t0x%x\n", frame[1]);
-    printf("Ctrl:\t0x%x\n", frame[2]);
+    printf("Flag:\t0x%02X\n", frame[0]);
+    printf("Addr:\t0x%02X\n", frame[1]);
+    printf("Ctrl:\t0x%02X\n", frame[2]);
     printf("\tRecN:\t%d\n", (frame[2] >> 5) & 0x07);
     printf("\tP/Fb:\t%d\n", (frame[2] >> 4) & 0x01);
     printf("\tSenN:\t%d\n", (frame[2] >> 1) & 0x07);
@@ -110,9 +86,9 @@ void print_frame(int8_t *frame, size_t buf_size)
     printf("Data:\n");
     for (i = 3; i < buf_size - 3; i++)
     {
-        printf("0x%x, ", frame[i]);
+        printf("0x%02X, ", frame[i]);
     }
     printf("\nEnd of Data\n");
-    printf("FCS:\t0x%X%X\n", (uint8_t)frame[i], (uint8_t)frame[i + 1]);
-    printf("Flag:\t0x%X\n", frame[buf_size - 1]);
+    printf("FCS:\t0x%02X%02X\n", (uint8_t)frame[i], (uint8_t)frame[i + 1]);
+    printf("Flag:\t0x%X\n\n", frame[buf_size - 1]);
 }
