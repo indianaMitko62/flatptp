@@ -69,7 +69,7 @@ items marked with 🤔 should be discussed with priority
 - 👎 FlatBuffers - has two different data types for structs: *table* and *struct*. Tables have field IDs, pointers and generally take lots of space (up to 8x the space for data). In theory, the `flatcc` tool supports "root structs", which means that we might be able to make the library work for static types without tables. This is unsupported in the official library, though, but there might be a hacky way to get it to work. In any case, we will definitely not be using this library as intended.
 - 👎 SBE - no available implementation for C, and the implementation for other languages is too heavy. The definition language itself may work fine.
 - 🤔 ASN.1 - the PER encoding of ASN.1 might work, but the popular C libraries I could find rely on allocating stuff too much. The definition language has everything nice.
-    - 🤔 Actually, the library (https://github.com/maxime-esa/asn1scc)[asn1scc] seems to have exactly the features we need, is developed by ESA and they actually use it in space
+    - 🤔 Actually, the library [asn1scc](https://github.com/maxime-esa/asn1scc) seems to have exactly the features we need, is developed by ESA and they actually use it in space
 
 Out of these libraries, the only one that seems optimised for resource-constrained environments, at least from what I could find, is asn1scc.
 The other alternative, of course, is writing our own.
