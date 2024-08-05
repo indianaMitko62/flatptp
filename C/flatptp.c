@@ -76,6 +76,7 @@ size_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t *
 void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
 {
     ctx->buf = buf;
+    ctx->data = buf + 2;
     ctx->buf_max_size = max_size;
     ctx->buf_index = 0;
     ctx->received_flag = 0;
@@ -120,7 +121,6 @@ uint16_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx)
     {
         ctx->received_flag = 0;
         ctx->buf_index = 0;
-        ctx->buf += 2;
         return ctx->buf_index - 4; // removing CRC, address and control fields from buf buffer.
     }
     else

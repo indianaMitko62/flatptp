@@ -19,13 +19,14 @@ size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t 
 // *********************
 typedef struct
 {
+    int8_t *buf;
     size_t buf_max_size;
     uint8_t received_flag;
     size_t buf_index;
 
     uint8_t address;
     hdlc_encode_ctl_t *ctl;
-    int8_t *buf;
+    int8_t *data;
     uint16_t crc;
 } hdlc_decode_ctx_t;
 
