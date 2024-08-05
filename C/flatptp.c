@@ -78,35 +78,31 @@ void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
     ctx->buf = buf;
     ctx->buf_max_size = max_size;
     ctx->buf_index = 0;
-    ctx->in_frame = 0;
+    ctx->received_flag = 0;
 }
 
 void hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 {
-    if (FLAG == b)
+    if (FLAG == b && ctx->buf_index > 0)
     {
-        ctx->in_frame = !ctx->in_frame;
-        return;
+        ctx->received_flag = 1;
     }
 
-    if (ctx->in_frame)
+    switch (ctx->buf_index)
     {
-        switch (ctx->buf_index)
-        {
-        case 0:
-            ctx->address = b;
-            break;
-        case 1:
-            ctx->ctl->receive_sequence_number = b & 0xE0;
-            ctx->ctl->poll_flag_bit = b & 0x10;
-            ctx->ctl->send_sequence_number = b & 0x0E;
-            ctx->ctl->type = b & 0x01;
-            break;
-        default:
-            break;
-        }
-        ctx->buf[ctx->buf_index++] = b;
+    case 0:
+        ctx->address = b;
+        break;
+    case 1:
+        ctx->ctl->receive_sequence_number = b & 0xE0;
+        ctx->ctl->poll_flag_bit = b & 0x10;
+        ctx->ctl->send_sequence_number = b & 0x0E;
+        ctx->ctl->type = b & 0x01;
+        break;
+    default:
+        break;
     }
+    ctx->buf[ctx->buf_index++] = b;
     if (ctx->buf_index == ctx->buf_max_size)
     {
         return; // return error for not enough size for buf
@@ -115,13 +111,15 @@ void hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 
 uint16_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx)
 {
-    if (ctx->in_frame)
+    if (!ctx->received_flag)
     {
         return 0;
     }
     ctx->crc = ctx->buf[ctx->buf_index - 1] << 8 | ctx->buf[ctx->buf_index - 2];
     if (ctx->crc == crc16_ccitt(ctx->buf, ctx->buf_index - 2))
     {
+        ctx->received_flag = 0;
+        ctx->buf_index = 0;
         ctx->buf += 2;
         return ctx->buf_index - 4; // removing CRC, address and control fields from buf buffer.
     }

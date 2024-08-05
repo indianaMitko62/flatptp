@@ -20,7 +20,7 @@ size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t 
 typedef struct
 {
     size_t buf_max_size;
-    uint8_t in_frame;
+    uint8_t received_flag;
     size_t buf_index;
 
     uint8_t address;
