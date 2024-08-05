@@ -12,6 +12,13 @@
 #define CRC_START_VAL 0xFFFF
 #define CRC_POLY 0x1021
 
+#define ERR_ENCODING_FRAME -1
+#define ERR_BUFFER_OVERFLOWING -2
+#define ERR_INVALID_FRAME -3
+
+#define INFO_OK 0
+#define INFO_FLAG_RECEIVED 1
+
 void add_byte_to_crc(uint16_t *frame_crc, int8_t byte)
 {
     *frame_crc ^= (uint16_t)byte << 8;
@@ -66,14 +73,13 @@ size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t 
     return frame_index;
 }
 
-size_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t *frame_buf)
+ssize_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t *frame_buf)
 {
     static hdlc_encode_ctl_t ctl = {0, 0, 1};
     size_t frame_size = hdlc_encode_info_frame(frame_buf, address, &ctl, buf, data_size);
     if (0 == frame_size)
     {
-        printf("error encoding frame");
-        return 1;
+        return ERR_ENCODING_FRAME;
     }
     return frame_size;
 }
@@ -87,12 +93,12 @@ void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
     ctx->received_flag = 0;
 }
 
-void hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
+int8_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 {
     if (FLAG == b && ctx->buf_index > 0)
     {
         ctx->received_flag = 1;
-        return;
+        return INFO_FLAG_RECEIVED;
     }
 
     switch (ctx->buf_index)
@@ -113,26 +119,20 @@ void hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
     ctx->buf[ctx->buf_index++] = b;
     if (ctx->buf_index == ctx->buf_max_size)
     {
-        return; // return error for not enough size for buf
+        return ERR_BUFFER_OVERFLOWING;
     }
+    return INFO_OK;
 }
 
-uint16_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx)
+ssize_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx)
 {
-    if (!ctx->received_flag)
-    {
-        return 0;
-    }
     if (ctx->frame_crc == 0)
     {
         ctx->received_flag = 0;
         ctx->buf_index = 0;
         return ctx->buf_index - 4; // removing CRC, address and control fields from buf buffer.
     }
-    else
-    {
-        return 0; // return wrong FCS
-    }
+    return ERR_INVALID_FRAME;
 }
 
 void print_encoded_frame(int8_t *frame, size_t frame_size)
