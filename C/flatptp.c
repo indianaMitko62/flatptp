@@ -12,12 +12,12 @@
 #define CRC_START_VAL 0xFFFF
 #define CRC_POLY 0x1021
 
-uint16_t crc16_ccitt(int8_t *data, size_t length)
+uint16_t crc16_ccitt(int8_t *buf, size_t length)
 {
     uint16_t crc = CRC_START_VAL;
     for (size_t i = 0; i < length; i++)
     {
-        crc ^= (uint16_t)data[i] << 8;
+        crc ^= (uint16_t)buf[i] << 8;
         for (int j = 0; j < 8; j++)
         {
             if (crc & 0x8000)
@@ -33,7 +33,7 @@ uint16_t crc16_ccitt(int8_t *data, size_t length)
     return crc;
 }
 
-size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *data, size_t data_size)
+size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t *ctl, const int8_t *buf, size_t data_size)
 {
     uint32_t frame_index = 0;
 
@@ -44,13 +44,13 @@ size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t 
 
     for (int i = 0; i < data_size; i++)
     {
-        if (FLAG == data[i] || ESCAPE == data[i])
+        if (FLAG == buf[i] || ESCAPE == buf[i])
         {
             frame[frame_index++] = ESCAPE;
-            frame[frame_index++] = data[i] ^ XOR_VALUE;
+            frame[frame_index++] = buf[i] ^ XOR_VALUE;
             continue;
         }
-        frame[frame_index++] = data[i];
+        frame[frame_index++] = buf[i];
     }
 
     uint16_t crc = crc16_ccitt(frame + 1, frame_index - 1); //+/-1 is to avoid adding the entry flag to FCS calculation
@@ -61,10 +61,10 @@ size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t 
     return frame_index;
 }
 
-size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t *frame_buf)
+size_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t *frame_buf)
 {
     static hdlc_encode_ctl_t ctl = {0, 0, 1};
-    size_t frame_size = hdlc_encode_info_frame(frame_buf, address, &ctl, data, data_size);
+    size_t frame_size = hdlc_encode_info_frame(frame_buf, address, &ctl, buf, data_size);
     if (0 == frame_size)
     {
         printf("error encoding frame");
@@ -73,11 +73,11 @@ size_t hdlc_encode_data(uint8_t address, int8_t *data, size_t data_size, int8_t 
     return frame_size;
 }
 
-void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *data, uint16_t max_size)
+void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
 {
-    ctx->data = data;
+    ctx->buf = buf;
     ctx->buf_max_size = max_size;
-    ctx->data_index = 0;
+    ctx->buf_index = 0;
     ctx->in_frame = 0;
 }
 
@@ -88,30 +88,28 @@ void hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
         ctx->in_frame = !ctx->in_frame;
         return;
     }
-    else
+
+    if (ctx->in_frame)
     {
-        if (ctx->in_frame)
+        switch (ctx->buf_index)
         {
-            switch (ctx->data_index)
-            {
-            case 0:
-                ctx->address = b;
-                break;
-            case 1:
-                ctx->ctl->receive_sequence_number = b & 0xE0;
-                ctx->ctl->poll_flag_bit = b & 0x10;
-                ctx->ctl->send_sequence_number = b & 0x0E;
-                ctx->ctl->type = b & 0x01;
-                break;
-            default:
-                ctx->data[ctx->data_index++] = b;
-                break;
-            }
+        case 0:
+            ctx->address = b;
+            break;
+        case 1:
+            ctx->ctl->receive_sequence_number = b & 0xE0;
+            ctx->ctl->poll_flag_bit = b & 0x10;
+            ctx->ctl->send_sequence_number = b & 0x0E;
+            ctx->ctl->type = b & 0x01;
+            break;
+        default:
+            break;
         }
+        ctx->buf[ctx->buf_index++] = b;
     }
-    if (ctx->data_index + 2 == ctx->buf_max_size)
+    if (ctx->buf_index == ctx->buf_max_size)
     {
-        return; // return error for not enough size for data
+        return; // return error for not enough size for buf
     }
 }
 
@@ -121,10 +119,11 @@ uint16_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx)
     {
         return 0;
     }
-    ctx->crc = ctx->data[ctx->data_index - 1] << 8 | ctx->data[ctx->data_index - 2];
-    if (ctx->crc == crc16_ccitt(ctx->data, ctx->data_index - 2))
+    ctx->crc = ctx->buf[ctx->buf_index - 1] << 8 | ctx->buf[ctx->buf_index - 2];
+    if (ctx->crc == crc16_ccitt(ctx->buf, ctx->buf_index - 2))
     {
-        return ctx->data_index - 2; // removing CRC from data buffer.
+        ctx->buf += 2;
+        return ctx->buf_index - 4; // removing CRC, address and control fields from buf buffer.
     }
     else
     {
@@ -161,9 +160,9 @@ void print_decoded_frame_ctx(hdlc_decode_ctx_t *ctx)
     printf("\tSenN:\t%d\n", ctx->ctl->send_sequence_number);
     printf("\tType:\t%d\n", ctx->ctl->type);
     printf("Data:\n");
-    for (int i = 0; i < ctx->data_index - 2; i++)
+    for (int i = 3; i < ctx->buf_index - 2; i++)
     {
-        printf("0x%02X, ", ctx->data[i]);
+        printf("0x%02X, ", ctx->buf[i]);
     }
     printf("\nEnd of Data\n");
     printf("FCS:\t0x%02X%02X\n", ctx->crc);

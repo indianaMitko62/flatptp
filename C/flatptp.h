@@ -21,11 +21,11 @@ typedef struct
 {
     size_t buf_max_size;
     uint8_t in_frame;
-    size_t data_index;
+    size_t buf_index;
 
     uint8_t address;
     hdlc_encode_ctl_t *ctl;
-    int8_t *data;
+    int8_t *buf;
     uint16_t crc;
 } hdlc_decode_ctx_t;
 
