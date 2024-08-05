@@ -16,8 +16,7 @@
 #define ERR_BUFFER_OVERFLOWING -2
 #define ERR_INVALID_FRAME -3
 
-#define INFO_OK 0
-#define INFO_FLAG_RECEIVED 1
+#define INFO_BYTE_EATHEN -4
 
 void add_byte_to_crc(uint16_t *frame_crc, int8_t byte)
 {
@@ -90,15 +89,20 @@ void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
     ctx->data = buf + 2;
     ctx->buf_max_size = max_size;
     ctx->buf_index = 0;
-    ctx->received_flag = 0;
+    ctx->frame_crc = CRC_START_VAL;
 }
 
-int8_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
+ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 {
     if (FLAG == b && ctx->buf_index > 0)
     {
-        ctx->received_flag = 1;
-        return INFO_FLAG_RECEIVED;
+        if (ctx->frame_crc == 0)
+        {
+            ctx->buf_index = 0;
+            ctx->frame_crc = CRC_START_VAL;
+            return ctx->buf_index - 4; // removing CRC, address and control fields from buffer's length.
+        }
+        return ERR_INVALID_FRAME;
     }
 
     switch (ctx->buf_index)
@@ -121,18 +125,7 @@ int8_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
     {
         return ERR_BUFFER_OVERFLOWING;
     }
-    return INFO_OK;
-}
-
-ssize_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx)
-{
-    if (ctx->frame_crc == 0)
-    {
-        ctx->received_flag = 0;
-        ctx->buf_index = 0;
-        return ctx->buf_index - 4; // removing CRC, address and control fields from buf buffer.
-    }
-    return ERR_INVALID_FRAME;
+    return INFO_BYTE_EATHEN;
 }
 
 void print_encoded_frame(int8_t *frame, size_t frame_size)

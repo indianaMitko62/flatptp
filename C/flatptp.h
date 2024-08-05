@@ -21,7 +21,6 @@ typedef struct
 {
     int8_t *buf;
     size_t buf_max_size;
-    uint8_t received_flag;
     size_t buf_index;
 
     uint8_t address;
@@ -31,12 +30,11 @@ typedef struct
 } hdlc_decode_ctx_t;
 
 void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *data, uint16_t max_size);
-int8_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t c);
 
-// if the previous eat() call ate the last byte of a complete frame,
-// this function should return the size of the frame (and data field should
+// if the eat() call eats the last byte of a complete frame,
+// it should return the size of the frame (and data field should
 // contain the decoded frame content)
-ssize_t hdlc_decode_has_complete_frame(hdlc_decode_ctx_t *ctx);
+ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t c);
 
 // *********************
 // HDLC help
