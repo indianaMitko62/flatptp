@@ -27,7 +27,7 @@ typedef struct
     uint8_t address;
     hdlc_encode_ctl_t *ctl;
     int8_t *data;
-    uint16_t crc;
+    uint16_t frame_crc;
 } hdlc_decode_ctx_t;
 
 void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *data, uint16_t max_size);
