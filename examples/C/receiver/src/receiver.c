@@ -20,7 +20,7 @@ int main()
     char buf[256];
     int8_t c;
     hdlc_decode_ctx_t *decoder;
-    hldc_decode_start(decoder, buf, sizeof(buf) - 1); // -1 to allow adding terminating zeros for easy printing
+    hdlc_decode_start(decoder, buf, sizeof(buf) - 1); // -1 to allow adding terminating zeros for easy printing
     while (true)
     {
         receive_byte(&c);
