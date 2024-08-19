@@ -4,14 +4,16 @@
 #include "flatptp.h"
 #include <stdint.h>
 
-size_t send_bytes(int8_t *buf, size_t buf_size)
-{
-    print_encoded_frame(buf, buf_size);
-    return buf_size;
-}
-
 void receive_byte(int8_t *buf)
 {
+    int fd = open("/dev/ttyACM0");
+    if (0 > fd)
+    {
+        printf("could not open port");
+        return;
+    }
+    size_t bytes_read = read(fd, buf, 1);
+    close(fd);
     return;
 }
 
@@ -24,12 +26,22 @@ int main()
     while (true)
     {
         receive_byte(&c);
-        hdlc_decode_eat(decoder, c);
-        if (hdlc_decode_has_complete_frame(decoder))
+        int res = hdlc_decode_eat(decoder, c);
+        if (res > 0)
         {
-            print_decoded_frame_ctx(decoder);
-            sleep(1);
+            printf("message received: ");
+            for (int i = 0; i < res; i++)
+            {
+                printf("%c", decoder->data[i]);
+            }
+            printf("\n");
+            continue;
         }
+        if (res != INFO_BYTE_EATHEN)
+        {
+            printf("Error eating byte 0x%02X: %d", c, res);
+        }
+        printf("Sucessfully eaten 0x%02X: %d", c, res);
         sleep(0.2);
     }
     return 0;
