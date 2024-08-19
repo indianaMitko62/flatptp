@@ -1,5 +1,11 @@
 #include <stdint.h>
 
+#define ERR_ENCODING_FRAME -1
+#define ERR_BUFFER_OVERFLOWING -2
+#define ERR_INVALID_FRAME -3
+
+#define INFO_BYTE_EATHEN -4
+
 // *********************
 // HDLC encoding
 // *********************

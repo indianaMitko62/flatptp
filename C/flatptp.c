@@ -12,12 +12,6 @@
 #define CRC_START_VAL 0xFFFF
 #define CRC_POLY 0x1021
 
-#define ERR_ENCODING_FRAME -1
-#define ERR_BUFFER_OVERFLOWING -2
-#define ERR_INVALID_FRAME -3
-
-#define INFO_BYTE_EATHEN -4
-
 void add_byte_to_crc(uint16_t *frame_crc, int8_t byte)
 {
     *frame_crc ^= (uint16_t)byte << 8;
