@@ -79,11 +79,15 @@ ssize_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t 
 
 void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
 {
-    ctx->buf = buf;
-    ctx->data = buf + 2;
-    ctx->buf_max_size = max_size;
-    ctx->buf_index = 0;
-    ctx->frame_crc = CRC_START_VAL;
+    hdlc_decode_ctx_t new_ctx = {buf, max_size, 0, 0, NULL, buf + 2, CRC_START_VAL};
+
+    // ctx->buf = buf;
+    // ctx->data = buf + 2;
+    // ctx->buf_max_size = max_size;
+    // ctx->buf_index = 0;
+    // ctx->frame_crc = CRC_START_VAL;
+
+    ctx = &new_ctx;
 }
 
 ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
@@ -105,10 +109,12 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
         ctx->address = b;
         break;
     case 1:
-        ctx->ctl->receive_sequence_number = b & 0xE0;
-        ctx->ctl->poll_flag_bit = b & 0x10;
-        ctx->ctl->send_sequence_number = b & 0x0E;
-        ctx->ctl->type = b & 0x01;
+        hdlc_encode_ctl_t ctl;
+        ctl.receive_sequence_number = b & 0xE0;
+        ctl.poll_flag_bit = b & 0x10;
+        ctl.send_sequence_number = b & 0x0E;
+        ctl.type = b & 0x01;
+        ctx->ctl = &ctl;
         break;
     default:
         break;
