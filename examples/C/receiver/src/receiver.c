@@ -3,18 +3,25 @@
 #include <stdbool.h>
 #include "flatptp.h"
 #include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-void receive_byte(int8_t *buf)
+int8_t receive_byte(int8_t *buf)
 {
-    int fd = open("/dev/ttyACM0");
+    int fd = open("/dev/ttyACM0", O_RDONLY);
     if (0 > fd)
     {
-        printf("could not open port");
-        return;
+        printf("could not open port\n");
+        return 1;
     }
     size_t bytes_read = read(fd, buf, 1);
+    if (0 >= bytes_read)
+    {
+        printf("could not read from port\n");
+        return 2;
+    }
     close(fd);
-    return;
+    return 0;
 }
 
 int main()
@@ -25,7 +32,13 @@ int main()
     hdlc_decode_start(decoder, buf, sizeof(buf) - 1); // -1 to allow adding terminating zeros for easy printing
     while (true)
     {
-        receive_byte(&c);
+        // sleep(1);
+        int err = receive_byte(&c);
+        if (err)
+        {
+            printf("Error receiving byte. Error code: %d\n", err);
+            continue;
+        }
         int res = hdlc_decode_eat(decoder, c);
         if (res > 0)
         {
@@ -42,7 +55,6 @@ int main()
             printf("Error eating byte 0x%02X: %d", c, res);
         }
         printf("Sucessfully eaten 0x%02X: %d", c, res);
-        sleep(0.2);
     }
     return 0;
 }
