@@ -35,7 +35,7 @@ typedef struct
     uint16_t frame_crc;
 } hdlc_decode_ctx_t;
 
-void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *data, uint16_t max_size);
+hdlc_decode_ctx_t hdlc_decode_start(int8_t *buf, uint16_t max_size);
 
 // if the eat() call eats the last byte of a complete frame,
 // it should return the size of the frame (and data field should

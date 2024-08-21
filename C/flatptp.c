@@ -77,32 +77,33 @@ ssize_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t 
     return frame_size;
 }
 
-void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
+hdlc_decode_ctx_t hdlc_decode_start(int8_t *buf, uint16_t max_size)
 {
-    hdlc_decode_ctx_t new_ctx = {buf, max_size, 0, 0, NULL, buf + 2, CRC_START_VAL};
-
-    // ctx->buf = buf;
-    // ctx->data = buf + 2;
-    // ctx->buf_max_size = max_size;
-    // ctx->buf_index = 0;
-    // ctx->frame_crc = CRC_START_VAL;
-
-    ctx = &new_ctx;
+    hdlc_decode_ctx_t ctx = {buf, max_size, 0, 0, NULL, buf + 2, CRC_START_VAL};
+    return ctx;
 }
 
 ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 {
-    if (FLAG == b && ctx->buf_index > 0)
+    if (FLAG == b)
     {
+        if (0 == ctx->buf_index)
+        {
+            return INFO_BYTE_EATHEN;
+        }
+        ssize_t res;
         if (ctx->frame_crc == 0)
         {
-            ctx->buf_index = 0;
-            ctx->frame_crc = CRC_START_VAL;
-            return ctx->buf_index - 4; // removing CRC, address and control fields from buffer's length.
+            res = ctx->buf_index - 4; // removing CRC, address and control fields from buffer's length.
         }
-        return ERR_INVALID_FRAME;
+        else
+        {
+            res = ERR_INVALID_FRAME;
+        }
+        ctx->buf_index = 0;
+        ctx->frame_crc = CRC_START_VAL;
+        return res;
     }
-
     switch (ctx->buf_index)
     {
     case 0:
