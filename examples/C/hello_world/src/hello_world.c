@@ -6,7 +6,7 @@
 
 size_t send_bytes(int8_t *buf, size_t buf_size)
 {
-    print_frame(buf, buf_size);
+    print_encoded_frame(buf, buf_size);
     return buf_size;
 }
 
