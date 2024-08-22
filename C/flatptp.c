@@ -77,10 +77,13 @@ ssize_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t 
     return frame_size;
 }
 
-hdlc_decode_ctx_t hdlc_decode_start(int8_t *buf, uint16_t max_size)
+void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
 {
-    hdlc_decode_ctx_t ctx = {buf, max_size, 0, 0, NULL, buf + 2, CRC_START_VAL};
-    return ctx;
+    ctx->buf = buf;
+    ctx->buf_index = 0;
+    ctx->frame_crc = CRC_START_VAL;
+    ctx->data = ctx->buf + 2;
+    ctx->buf_max_size = max_size;
 }
 
 ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
@@ -89,9 +92,10 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
     {
         if (0 == ctx->buf_index)
         {
-            return INFO_BYTE_EATHEN;
+            return INFO_BYTE_EATEN;
         }
         ssize_t res;
+        ctx->msg_length = ctx->buf_index;
         if (ctx->frame_crc == 0)
         {
             res = ctx->buf_index - 4; // removing CRC, address and control fields from buffer's length.
@@ -110,12 +114,10 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
         ctx->address = b;
         break;
     case 1:
-        hdlc_encode_ctl_t ctl;
-        ctl.receive_sequence_number = b & 0xE0;
-        ctl.poll_flag_bit = b & 0x10;
-        ctl.send_sequence_number = b & 0x0E;
-        ctl.type = b & 0x01;
-        ctx->ctl = &ctl;
+        ctx->ctl.receive_sequence_number = b & 0xE0;
+        ctx->ctl.poll_flag_bit = b & 0x10;
+        ctx->ctl.send_sequence_number = b & 0x0E;
+        ctx->ctl.type = b & 0x01;
         break;
     default:
         break;
@@ -126,7 +128,7 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
     {
         return ERR_BUFFER_OVERFLOWING;
     }
-    return INFO_BYTE_EATHEN;
+    return INFO_BYTE_EATEN;
 }
 
 void print_encoded_frame(int8_t *frame, size_t frame_size)
@@ -153,10 +155,10 @@ void print_decoded_frame_ctx(hdlc_decode_ctx_t *ctx)
 {
     printf("Addr:\t0x%02X\n", ctx->address);
     printf("Ctrl:\t0x%02X\n", ctx->ctl);
-    printf("\tRecN:\t%d\n", ctx->ctl->receive_sequence_number);
-    printf("\tP/Fb:\t%d\n", ctx->ctl->poll_flag_bit);
-    printf("\tSenN:\t%d\n", ctx->ctl->send_sequence_number);
-    printf("\tType:\t%d\n", ctx->ctl->type);
+    printf("\tRecN:\t%d\n", ctx->ctl.receive_sequence_number);
+    printf("\tP/Fb:\t%d\n", ctx->ctl.poll_flag_bit);
+    printf("\tSenN:\t%d\n", ctx->ctl.send_sequence_number);
+    printf("\tType:\t%d\n", ctx->ctl.type);
     printf("Data:\n");
     for (int i = 3; i < ctx->buf_index - 2; i++)
     {

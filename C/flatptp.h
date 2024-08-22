@@ -4,7 +4,7 @@
 #define ERR_BUFFER_OVERFLOWING -2
 #define ERR_INVALID_FRAME -3
 
-#define INFO_BYTE_EATHEN -4
+#define INFO_BYTE_EATEN -4
 
 // *********************
 // HDLC encoding
@@ -28,14 +28,15 @@ typedef struct
     int8_t *buf;
     size_t buf_max_size;
     size_t buf_index;
+    size_t msg_length;
 
     uint8_t address;
-    hdlc_encode_ctl_t *ctl;
+    hdlc_encode_ctl_t ctl;
     int8_t *data;
     uint16_t frame_crc;
 } hdlc_decode_ctx_t;
 
-hdlc_decode_ctx_t hdlc_decode_start(int8_t *buf, uint16_t max_size);
+void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size);
 
 // if the eat() call eats the last byte of a complete frame,
 // it should return the size of the frame (and data field should
