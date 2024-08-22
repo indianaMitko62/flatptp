@@ -23,7 +23,8 @@ int main()
 {
     char buf[256];
     int8_t c;
-    hdlc_decode_ctx_t decoder = hdlc_decode_start(buf, sizeof(buf) - 1); // -1 to allow adding terminating zeros for easy printing
+    hdlc_decode_ctx_t decoder;
+    hdlc_decode_start(&decoder, buf, sizeof(buf) - 1); // -1 to allow adding terminating zeros for easy printing
     int fd = open("/dev/ttyACM0", O_RDONLY);
     if (0 > fd)
     {
@@ -42,6 +43,7 @@ int main()
                 continue;
             }
             int res = hdlc_decode_eat(&decoder, c);
+            printf("byte received: 0x%02X\n", c);
             if (res > 0)
             {
                 printf("message received: '");
@@ -54,11 +56,17 @@ int main()
                 break;
             }
             if (ERR_INVALID_FRAME == res)
+            {
+                for (int i = 0; i < decoder.msg_length; i++)
+                {
+                    printf("0x%02X, ", decoder.buf[i]);
+                }
+                printf("\n");
                 break;
-            if (INFO_BYTE_EATHEN != res)
+            }
+            if (INFO_BYTE_EATEN != res)
             {
                 printf("Error eating byte 0x%02X\t%c: %d\n\n\n", c, c, res);
-                continue;
             }
         }
     }
