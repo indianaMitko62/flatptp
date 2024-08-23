@@ -90,15 +90,16 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 {
     if (FLAG == b)
     {
-        if (0 == ctx->buf_index)
+        if (5 > ctx->buf_index)
         {
+            ctx->msg_length = 0;
             return INFO_BYTE_EATEN;
         }
         ssize_t res;
-        ctx->msg_length = ctx->buf_index;
+        ctx->msg_length = ctx->buf_index - 4;
         if (ctx->frame_crc == 0)
         {
-            res = ctx->buf_index - 4; // removing CRC, address and control fields from buffer's length.
+            res = ctx->msg_length; // removing CRC, address and control fields from buffer's length.
         }
         else
         {
@@ -114,9 +115,9 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
         ctx->address = b;
         break;
     case 1:
-        ctx->ctl.receive_sequence_number = b & 0xE0;
-        ctx->ctl.poll_flag_bit = b & 0x10;
-        ctx->ctl.send_sequence_number = b & 0x0E;
+        ctx->ctl.receive_sequence_number = (b & 0xE0) >> 4;
+        ctx->ctl.poll_flag_bit = (b & 0x10) >> 4;
+        ctx->ctl.send_sequence_number = (b & 0x0E) >> 1;
         ctx->ctl.type = b & 0x01;
         break;
     default:
@@ -124,7 +125,7 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
     }
     add_byte_to_crc(&(ctx->frame_crc), b);
     ctx->buf[ctx->buf_index++] = b;
-    if (ctx->buf_index == ctx->buf_max_size)
+    if (ctx->buf_index >= ctx->buf_max_size)
     {
         return ERR_BUFFER_OVERFLOWING;
     }
@@ -154,16 +155,15 @@ void print_encoded_frame(int8_t *frame, size_t frame_size)
 void print_decoded_frame_ctx(hdlc_decode_ctx_t *ctx)
 {
     printf("Addr:\t0x%02X\n", ctx->address);
-    printf("Ctrl:\t0x%02X\n", ctx->ctl);
     printf("\tRecN:\t%d\n", ctx->ctl.receive_sequence_number);
     printf("\tP/Fb:\t%d\n", ctx->ctl.poll_flag_bit);
     printf("\tSenN:\t%d\n", ctx->ctl.send_sequence_number);
     printf("\tType:\t%d\n", ctx->ctl.type);
     printf("Data:\n");
-    for (int i = 3; i < ctx->buf_index - 2; i++)
+    for (int i = 0; i < ctx->msg_length; i++)
     {
-        printf("0x%02X, ", ctx->buf[i]);
+        printf("0x%02X, ", ctx->data[i]);
     }
     printf("\nEnd of Data\n");
-    printf("FCS:\t0x%02X%02X\n", ctx->frame_crc);
+    printf("FCS:\t0x%02X\n\n", ctx->frame_crc);
 }
