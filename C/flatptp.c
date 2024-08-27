@@ -138,9 +138,9 @@ void print_encoded_frame(int8_t *frame, size_t frame_size)
     printf("Flag:\t0x%02X\n", frame[0]);
     printf("Addr:\t0x%02X\n", frame[1]);
     printf("Ctrl:\t0x%02X\n", frame[2]);
-    printf("\tRecN:\t%d\n", frame[2] & 0xE0);
-    printf("\tP/Fb:\t%d\n", frame[2] & 0x10);
-    printf("\tSenN:\t%d\n", frame[2] & 0x0E);
+    printf("\tRecN:\t%d\n", (frame[2] & 0xE0) >> 4);
+    printf("\tP/Fb:\t%d\n", (frame[2] & 0x10) >> 4);
+    printf("\tSenN:\t%d\n", (frame[2] & 0x0E) >> 1);
     printf("\tType:\t%d\n", frame[2] & 0x01);
     printf("Data:\n");
     for (i = 3; i < frame_size - 3; i++)
