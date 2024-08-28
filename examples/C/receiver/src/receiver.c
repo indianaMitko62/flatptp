@@ -42,8 +42,7 @@ int set_interface_attribs(int fd, int speed, int parity)
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0)
     {
-            err(2, "error %d from tcsetattr", errno);
-            return -1;
+        err(2, "error %d from tcsetattr", errno);
     }
     return 0;
 }
@@ -54,8 +53,7 @@ void set_blocking(int fd, int should_block)
     memset(&tty, 0, sizeof tty);
     if (tcgetattr(fd, &tty) != 0)
     {
-            err(2, "error %d from tggetattr", errno);
-            return;
+        err(2, "error %d from tggetattr", errno);
     }
 
     tty.c_cc[VMIN] = should_block ? 1 : 0;
