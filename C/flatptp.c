@@ -90,7 +90,7 @@ ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
 {
     if (FLAG == b)
     {
-        if (5 > ctx->buf_index)
+        if (ctx->buf_index < 5)
         {
             ctx->msg_length = 0;
             return INFO_BYTE_EATEN;
@@ -166,4 +166,4 @@ void print_decoded_frame_ctx(hdlc_decode_ctx_t *ctx)
     }
     printf("\nEnd of Data\n");
     printf("FCS:\t0x%02X\n\n", ctx->frame_crc);
-}
+ }
