@@ -9,17 +9,11 @@
 
 #define MILLISECONDS(val) val * 1000
 
-size_t receive_bytes(int8_t *buf)
-{
-    return 0;
-}
-
 int main(int argc, char** argv)
 {
     if (argc < 2)
     {
-        printf("Missing function argument.\nUsage: <filepath>\n");
-        return 1;
+        errx(1, "Missing command line argument.\nUsage: <filepath>\n");
     }
     uint8_t data[] = "Hello World";
     uint8_t *send_buf = malloc(9 + sizeof(data) * 2);
@@ -27,17 +21,15 @@ int main(int argc, char** argv)
     int fd = open(argv[1], O_WRONLY);
     if (fd < 0)
     {
-        err(2, "Error openning");
-        return 2;
+        err(2, "Error opening");
     }
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 100; i++)
     {
         int n = 0;
         n = hdlc_encode_data(address, data, sizeof(data), send_buf);
         if (write(fd, send_buf, n) != n)
         {
-            printf("Could not send %d bytes\n", n);
-            return 1;
+            errx(2, "Could not send %d bytes\n", n);
         }
         printf("Sent bytes count: %d\n", n);
         print_encoded_frame(send_buf, n);
