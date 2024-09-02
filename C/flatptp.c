@@ -66,7 +66,7 @@ size_t hdlc_encode_info_frame(int8_t *frame, uint8_t address, hdlc_encode_ctl_t 
     return frame_index;
 }
 
-ssize_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t *frame_buf)
+ssize_t flatptp_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t *frame_buf)
 {
     static hdlc_encode_ctl_t ctl = {0, 0, 1};
     size_t frame_size = hdlc_encode_info_frame(frame_buf, address, &ctl, buf, data_size);
@@ -77,7 +77,7 @@ ssize_t hdlc_encode_data(uint8_t address, int8_t *buf, size_t data_size, int8_t 
     return frame_size;
 }
 
-void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
+void flatptp_decode_start(flatptp_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
 {
     ctx->buf = buf;
     ctx->buf_index = 0;
@@ -86,7 +86,7 @@ void hdlc_decode_start(hdlc_decode_ctx_t *ctx, int8_t *buf, uint16_t max_size)
     ctx->buf_max_size = max_size;
 }
 
-ssize_t hdlc_decode_eat(hdlc_decode_ctx_t *ctx, int8_t b)
+ssize_t flatptp_decode_eat(flatptp_decode_ctx_t *ctx, int8_t b)
 {
     if (FLAG == b)
     {
@@ -152,7 +152,7 @@ void print_encoded_frame(int8_t *frame, size_t frame_size)
     printf("Flag:\t0x%X\n\n", frame[frame_size - 1]);
 }
 
-void print_decoded_frame_ctx(hdlc_decode_ctx_t *ctx)
+void print_decoded_frame_ctx(flatptp_decode_ctx_t *ctx)
 {
     printf("Addr:\t0x%02X\n", ctx->address);
     printf("\tRecN:\t%d\n", ctx->ctl.receive_sequence_number);

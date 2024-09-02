@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < 100; i++)
     {
         int n = 0;
-        n = hdlc_encode_data(address, data, sizeof(data), send_buf);
+        n = flatptp_encode_data(address, data, sizeof(data), send_buf);
         if (write(fd, send_buf, n) != n)
         {
             errx(2, "Could not send %d bytes\n", n);

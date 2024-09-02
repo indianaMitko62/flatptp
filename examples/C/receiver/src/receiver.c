@@ -77,9 +77,9 @@ int main(int argc, char **argv)
     set_interface_attribs(fd, B115200, 0); // set speed to 115,200 bps, 8n1 (no parity)
     set_blocking(fd, 0);                   // set no blocking
 
-    hdlc_decode_ctx_t decoder;
+    flatptp_decode_ctx_t decoder;
     int8_t buf[256];
-    hdlc_decode_start(&decoder, buf, sizeof(buf));
+    flatptp_decode_start(&decoder, buf, sizeof(buf));
     int8_t c;
     uint32_t successful_messages = 0;
     for (int i = 0; i < TEST_MSG_CNT; i++)
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
             {
                 errx(3, "Error reading");
             }
-            res = hdlc_decode_eat(&decoder, c);
+            res = flatptp_decode_eat(&decoder, c);
             if (res > 0)
             {
                 printf("message received: '");
