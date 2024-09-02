@@ -2,6 +2,6 @@ package flatptp
 
 import "fmt"
 
-func main() {
+func Hello() {
 	fmt.Println("Hello Flatptp!")
 }
